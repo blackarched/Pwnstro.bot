@@ -165,11 +165,63 @@ document.addEventListener('DOMContentLoaded', () => {
         DOM.footerStatus.textContent = `Pwnagotchi is ${dev.status || 'learning'}... | Last Update: ${new Date(data.timestamp).toLocaleTimeString()}`;
     };
 
-    const renderHandshakes = (handshakes) => { /* ... same as previous phase ... */ };
-    const renderPeers = (peers) => { /* ... same as previous phase ... */ };
-    const loadPlugins = async () => { /* ... same as previous phase ... */ };
-    const renderPlugins = (plugins) => { /* ... same as previous phase ... */ };
-    const loadConfig = async () => { /* ... same as previous phase ... */ };
+    const renderHandshakes = (handshakes) => {
+        if (!handshakes) return;
+        DOM.handshakesTableBody.innerHTML = '';
+        handshakes.forEach(handshake => {
+            const row = document.createElement('tr');
+            const date = new Date(handshake.timestamp * 1000);
+            row.innerHTML = `
+                <td>${handshake.name}</td>
+                <td>${date.toLocaleString()}</td>
+                <td>${handshake.size_kb} KB</td>
+                <td><a href="/api/handshakes/${handshake.name}" class="button">Download</a></td>
+            `;
+            DOM.handshakesTableBody.appendChild(row);
+        });
+    };
+    const renderPeers = (peers) => {
+        if (!peers) return;
+        DOM.peerList.innerHTML = '';
+        peers.forEach(peer => {
+            const peerDiv = document.createElement('div');
+            peerDiv.className = 'stat-row';
+            peerDiv.innerHTML = `<span>${peer.advertisement.name}</span><span>${peer.advertisement.face}</span>`;
+            DOM.peerList.appendChild(peerDiv);
+        });
+    };
+    const loadPlugins = async () => {
+        try {
+            const response = await fetch('/api/plugins');
+            const plugins = await response.json();
+            renderPlugins(plugins);
+        } catch (e) {
+            console.error("Failed to load plugins:", e);
+        }
+    };
+
+    const renderPlugins = (plugins) => {
+        if (!plugins) return;
+        DOM.pluginListContainer.innerHTML = '';
+        plugins.forEach(plugin => {
+            const pluginDiv = document.createElement('div');
+            pluginDiv.className = 'stat-row';
+            pluginDiv.innerHTML = `
+                <span>${plugin.name}</span>
+                <div class="toggle-switch ${plugin.enabled ? 'active' : ''}" onclick="togglePlugin('${plugin.name}')"></div>
+            `;
+            DOM.pluginListContainer.appendChild(pluginDiv);
+        });
+    };
+    const loadConfig = async () => {
+        try {
+            const response = await fetch('/api/config');
+            const config = await response.text();
+            DOM.configEditor.value = config;
+        } catch (e) {
+            console.error("Failed to load config:", e);
+        }
+    };
     
     // WebSocket
     const connectWebSocket = () => {

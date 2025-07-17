@@ -1,9 +1,10 @@
 fastapi
 uvicorn[standard]
-pyYAML 
+pyYAML
 pydantic
 websockets
 aiofiles
 psutil
 jinja2
 toml
+httpx

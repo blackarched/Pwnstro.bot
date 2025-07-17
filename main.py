@@ -11,11 +11,12 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Requ
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from pwnagotchi_api import get_pwnagotchi_data, get_peers, get_handshakes
+
 # --- Configuration ---
 LOG_LEVEL = logging.INFO
 HOST = "0.0.0.0"
 PORT = 8080
-PWNAGOTCHI_DATA_FILE = Path("/tmp/pwnagotchi_data.json")
 HANDSHAKE_DIR = Path("/root/handshakes/")
 CONFIG_PATH = Path("/etc/pwnagotchi/config.toml")
 PLUGIN_DIRS = [ Path("/usr/local/share/pwnagotchi/custom-plugins/"), Path("/usr/share/pwnagotchi/plugins/") ]
@@ -25,7 +26,6 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Pwnagotchi C&C API", version="4.0.0")
 
 class ConnectionManager:
-    # ... (no changes)
     def __init__(self): self.active_connections: List[WebSocket] = []
     async def connect(self, websocket: WebSocket): await websocket.accept(); self.active_connections.append(websocket)
     def disconnect(self, websocket: WebSocket): self.active_connections.remove(websocket)
@@ -34,12 +34,6 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # --- Helper Functions ---
-async def get_pwnagotchi_data() -> dict:
-    if not PWNAGOTCHI_DATA_FILE.is_file(): return {"error": "Pwnagotchi data file not found."}
-    try:
-        with open(PWNAGOTCHI_DATA_FILE, 'r') as f: return json.load(f)
-    except Exception as e: return {"error": str(e)}
-
 def restart_pwnagotchi_service():
     try:
         subprocess.run(["sudo", "systemctl", "restart", "pwnagotchi"], check=True)
@@ -51,7 +45,8 @@ def restart_pwnagotchi_service():
 
 # --- API Endpoints ---
 @app.get("/api/data")
-async def get_data(): return await get_pwnagotchi_data()
+async def get_data():
+    return await get_pwnagotchi_data()
 
 @app.get("/api/handshakes/{filename:path}")
 async def download_handshake(filename: str):
@@ -139,30 +134,42 @@ async def shutdown_system():
         logger.error(f"Failed to shutdown system: {e}")
         raise HTTPException(status_code=500, detail="Failed to issue shutdown command.")
 
-# --- Background Task, WebSocket, and Static Files (no changes) ---
+# --- Background Task, WebSocket, and Static Files ---
 async def broadcast_updates():
-    # ...
-    last_known_mtime = 0
     while True:
         await asyncio.sleep(2)
         try:
-            if not PWNAGOTCHI_DATA_FILE.exists(): continue
-            mtime = PWNAGOTCHI_DATA_FILE.stat().st_mtime
-            if mtime > last_known_mtime:
-                last_known_mtime = mtime
-                data = await get_pwnagotchi_data()
-                if "error" not in data: await manager.broadcast(json.dumps(data))
-        except Exception as e: logger.error(f"Broadcast loop error: {e}")
+            data = await get_pwnagotchi_data()
+            if "error" not in data:
+                peers = await get_peers()
+                if "error" not in peers:
+                    data["peers"] = peers
+                handshakes = await get_handshakes()
+                if "error" not in handshakes:
+                    data["handshakes"] = handshakes
+                await manager.broadcast(json.dumps(data))
+        except Exception as e:
+            logger.error(f"Broadcast loop error: {e}")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # ...
     await manager.connect(websocket)
     try:
-        await websocket.send_text(json.dumps(await get_pwnagotchi_data()))
-        while True: await asyncio.sleep(1)
-    except WebSocketDisconnect: pass
-    finally: manager.disconnect(websocket)
+        data = await get_pwnagotchi_data()
+        if "error" not in data:
+            peers = await get_peers()
+            if "error" not in peers:
+                data["peers"] = peers
+            handshakes = await get_handshakes()
+            if "error" not in handshakes:
+                data["handshakes"] = handshakes
+            await websocket.send_text(json.dumps(data))
+        while True:
+            await asyncio.sleep(1)
+    except WebSocketDisconnect:
+        pass
+    finally:
+        manager.disconnect(websocket)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/", response_class=HTMLResponse)
@@ -170,7 +177,9 @@ async def read_root():
     try:
         with open("static/gemini_dash5.html", "r") as f: return HTMLResponse(content=f.read())
     except FileNotFoundError: return HTMLResponse("<h1>Dashboard HTML not found.</h1>", status_code=404)
+
 @app.on_event("startup")
-async def on_startup(): asyncio.create_task(broadcast_updates())
+async def on_startup():
+    asyncio.create_task(broadcast_updates())
 
 if __name__ == "__main__": uvicorn.run(app, host=HOST, port=PORT)
