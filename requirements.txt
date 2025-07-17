@@ -1,10 +1,12 @@
-fastapi
-uvicorn[standard]
-pyYAML
-pydantic
-websockets
-aiofiles
-psutil
-jinja2
-toml
-httpx
+# Dashboard Dependencies
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+websockets==12.0
+aiofiles==23.2.1
+psutil==5.9.8
+toml==0.10.2
+httpx==0.27.0
+wheel
+
+# Pwnagotchi Fork (installs directly from github)
+git+https://github.com/jayofelony/pwnagotchi
