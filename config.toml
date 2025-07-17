@@ -1,0 +1,38 @@
+# =================================================================================
+# Pwnagotchi Default Configuration - /etc/pwnagotchi/config.toml
+#
+# This is a sample configuration file.
+# For a full list of options, see the official Pwnagotchi documentation.
+# =================================================================================
+
+main.name = "Pwnstro-Bot"
+main.whitelist = [
+  "your_home_network_ssid",
+  "your_phone_hotspot_ssid"
+]
+
+main.plugins.grid.enabled = true
+main.plugins.grid.report = true
+main.plugins.memtemp.enabled = true
+
+# -- CRITICAL: ENABLE THE DASHBOARD'S COMPANION PLUGIN --
+# This is the plugin that provides data to your web UI.
+main.plugins.WebUI_data.enabled = true
+
+# -- Example of another plugin --
+# main.plugins.bt-tether.enabled = true
+
+# AI configuration
+main.ai.enabled = true
+main.ai.learning_rate = 0.001
+main.ai.epsilon_start = 0.9
+
+# Personality traits
+personality.excited_num_epochs = 10
+personality.bored_num_epochs = 15
+personality.sad_num_epochs = 25
+
+# UI display settings
+ui.display.enabled = true
+ui.display.type = "waveshare_2" # Change this to match your e-ink screen model
+ui.display.color = "black"

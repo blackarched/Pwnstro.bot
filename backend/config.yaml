@@ -1,0 +1,53 @@
+# Pwnagotchi Ubuntu Configuration
+
+core:
+  iface: wlx002e2dfd022f # monitor-mode interface
+  scan_interval: 5 # seconds between channel hops
+  preferred_channels: [1,6,11]
+  output_path: ./captures
+
+ai:
+  model: qlearning
+  epsilon_start: 1.0
+  epsilon_min: 0.1
+  learning_rate: 0.01
+  discount_factor: 0.9
+
+plugins:
+  auto-backup:
+    enabled: true
+    local_path: ./backups
+  grid:
+    enabled: false
+  mesh:
+    enabled: false
+  memtemp:
+    enabled: true
+  bt-tether:
+    enabled: false
+  led:
+    enabled: true
+  webcfg:
+    enabled: true
+    port: 8080
+  mqtt:
+    enabled: false
+  session-stats:
+    enabled: true
+  crack_house:
+    enabled: true
+    orientation: "vertical"
+    files:
+      - '/root/handshakes/wpa-sec.cracked.potfile'
+      - '/root/handshakes/my.potfile'
+      - '/root/handshakes/OnlineHashCrack.potfile'
+    saving_path: '/root/handshakes/crackhouse.potfile'
+    display_stats: true
+  internet-connection:
+    enabled: true
+  instattack:
+    enabled: true
+  probenpwn:
+    enabled: true
+  pwnmenu:
+    enabled: true
