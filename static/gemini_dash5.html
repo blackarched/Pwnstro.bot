@@ -14,14 +14,17 @@
         .retro-container { width: 95vw; height: 95vh; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; padding: 0.5rem; border: 2px solid var(--neon-cyan); text-shadow: 0 0 0.5rem var(--neon-green); box-shadow: inset 0 0 2rem var(--neon-cyan); background-color: rgba(0, 0, 0, 0.75); }
         header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--neon-purple); }
         .logo { font-size: 1.5rem; text-shadow: 0 0 1rem var(--neon-pink); color: var(--neon-pink); }
-        nav ul { display: flex; gap: 1rem; list-style: none; }
+        nav ul { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; list-style: none; }
         nav a { color: var(--neon-yellow); text-decoration: none; padding: 0.5rem 1rem; border: 1px solid transparent; transition: all 0.3s ease-in-out; cursor: pointer; }
         nav a:hover, nav a.active { background-color: var(--neon-yellow); color: var(--background-color); border-color: var(--neon-yellow); }
         main { overflow: hidden; padding: 1rem; }
         section { display: none; height: 100%; overflow: auto; }
         section.active { display: grid; }
-        .grid-container, .grid-container-full { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; height: 100%; }
-        .module { border: 1px solid var(--neon-purple); padding: 1rem; background-color: rgba(179, 71, 255, 0.05); }
+        .grid-container, .grid-container-full, .grid-container-ai { display: grid; gap: 1rem; height: 100%; }
+        .grid-container { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-container-full { grid-template-columns: 1fr; }
+        .grid-container-ai { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+        .module { border: 1px solid var(--neon-purple); padding: 1rem; background-color: rgba(179, 71, 255, 0.05); overflow: hidden; }
         .module-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--neon-purple); }
         .module-title { font-size: 1.2rem; color: var(--neon-purple); }
         .module-content { height: calc(100% - 45px); overflow-y: auto; }
@@ -38,15 +41,13 @@
         .button.danger:hover { background-color: #ff0000; }
         footer { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-top: 1px solid var(--neon-purple); }
         .footer-controls { display: flex; gap: 1rem; }
-        .scrollbar-custom { scrollbar-width: thin; scrollbar-color: var(--neon-purple) var(--background-color); }
         .scrollbar-custom::-webkit-scrollbar { width: 8px; }
         .scrollbar-custom::-webkit-scrollbar-track { background: var(--background-color); }
         .scrollbar-custom::-webkit-scrollbar-thumb { background-color: var(--neon-purple); }
-        .toggle-switch { position: relative; width: 40px; height: 20px; border: 1px solid var(--neon-green); background: transparent; cursor: pointer; }
-        .toggle-switch.active { background-color: var(--neon-green); }
-        .toggle-switch::before { content: ''; position: absolute; width: 16px; height: 16px; top: 1px; left: 1px; background-color: var(--neon-green); transition: transform 0.3s; }
-        .toggle-switch.active::before { transform: translateX(20px); background-color: var(--background-color); }
-        #config-editor { width: 100%; height: calc(100% - 40px); background: #0a0a0a; color: var(--neon-green); border: 1px solid var(--neon-purple); padding: 0.5rem; font-family: inherit; }
+        #gratitude-graph { display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; width: 100%; border: 1px solid var(--neon-purple); padding: 5px; }
+        .graph-bar { width: 100%; background-color: var(--neon-green); transition: height 0.3s ease-in-out; }
+        .graph-bar.negative { background-color: var(--neon-pink); }
+        .form-input { background: #0a0a0a; color: var(--neon-green); border: 1px solid var(--neon-purple); padding: 0.5rem; font-family: inherit; width: 100%; }
     </style>
 </head>
 <body>
@@ -58,215 +59,192 @@
                 <li><a href="#dashboard" class="nav-link active">DASHBOARD</a></li>
                 <li><a href="#handshakes" class="nav-link">HANDSHAKES</a></li>
                 <li><a href="#peers" class="nav-link">PEERS</a></li>
+                <li><a href="#networks" class="nav-link">NETWORKS</a></li>
+                <li><a href="#ai" class="nav-link">AI INSIGHTS</a></li>
                 <li><a href="#plugins" class="nav-link">PLUGINS</a></li>
+                <li><a href="#grid" class="nav-link">PWNGRID</a></li>
                 <li><a href="#config" class="nav-link">CONFIG</a></li>
             </ul>
         </nav>
     </header>
     <main>
         <section id="dashboard" class="active grid-container">
-            <div class="module">
-                <div class="module-header"><h3 class="module-title">STATUS</h3></div>
-                <div class="face" id="mood-face">(⌐■_■)</div>
-                <div id="mood-text" style="text-align:center; color: var(--neon-pink);">LOADING...</div>
-            </div>
-            <div class="module">
-                <div class="module-header"><h3 class="module-title">SYSTEM</h3></div>
-                <div class="stat-row"><span>CPU:</span><span id="cpu-usage">--%</span></div>
-                <div class="stat-row"><span>Mem:</span><span id="memory-usage">--</span></div>
-                <div class="stat-row"><span>Temp:</span><span id="temperature">--°C</span></div>
-                <div class="stat-row"><span>Uptime:</span><span id="uptime">--</span></div>
-            </div>
-            <div class="module">
-                <div class="module-header"><h3 class="module-title">SESSION</h3></div>
-                <div class="stat-row"><span>Epoch:</span><span id="epoch">--</span></div>
-                <div class="stat-row"><span>APs:</span><span id="networks-count">0</span></div>
-                <div class="stat-row"><span>Handshakes:</span><span id="handshake-count">0</span></div>
-                <div class="stat-row"><span>Peers:</span><span id="peer-count">0</span></div>
-            </div>
-            <div class="module">
-                <div class="module-header"><h3 class="module-title">AI BRAIN</h3></div>
-                <div class="stat-row"><span>AI Mode:</span><span id="ai-mode">--</span></div>
-                <div class="stat-row"><span>Learning Rate:</span><span id="ai-lr">--</span></div>
-                <div class="stat-row"><span>Epsilon:</span><span id="ai-epsilon">--</span></div>
-                <div class="stat-row"><span>Excited/Bored/Sad:</span><span id="ai-personality">--</span></div>
-            </div>
+            <div class="module"><div class="module-header"><h3 class="module-title">STATUS</h3></div><div class="face"><img id="mood-gif" src="static/sleep.gif" alt="Pwnagotchi Mood" style="height: 70px;"/></div><div id="status" style="text-align:center; color: var(--neon-pink);">LOADING...</div></div>
+            <div class="module"><div class="module-header"><h3 class="module-title">SYSTEM</h3></div><div class="stat-row"><span>CPU:</span><span id="cpu">--%</span></div><div class="stat-row"><span>Mem:</span><span id="mem">--</span></div><div class="stat-row"><span>Temp:</span><span id="temperature">--°C</span></div><div class="stat-row"><span>Uptime:</span><span id="uptime">--</span></div></div>
+            <div class="module"><div class="module-header"><h3 class="module-title">SESSION</h3></div><div class="stat-row"><span>Epoch:</span><span id="epoch">--</span></div><div class="stat-row"><span>APs:</span><span id="aps_total">0</span></div><div class="stat-row"><span>Handshakes:</span><span id="pwnd_total">0</span></div><div class="stat-row"><span>Peers:</span><span id="peer-count">0</span></div></div>
+            <div class="module"><div class="module-header"><h3 class="module-title">AI BRAIN</h3></div><div class="stat-row"><span>AI Mode:</span><span id="mode">--</span></div><div class="stat-row"><span>Train Epochs:</span><span id="train_epochs">--</span></div><div class="stat-row"><span>Gratitude:</span><span id="gratitude">--</span></div><div class="stat-row"><span>Last Reward:</span><span id="last_reward">--</span></div></div>
         </section>
-        <section id="handshakes" class="grid-container-full">
-            <div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">CAPTURED HANDSHAKES</h3></div><div class="module-content scrollbar-custom"><table class="table" id="handshakes-table"><thead><tr><th>Filename</th><th>Date</th><th>Size</th><th>Action</th></tr></thead><tbody></tbody></table></div></div>
-        </section>
-        <section id="peers" class="grid-container-full">
-            <div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">VISIBLE PEERS</h3></div><div class="module-content scrollbar-custom" id="peer-list"></div></div>
-        </section>
-        <section id="plugins" class="grid-container-full">
-            <div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">PLUGIN MANAGEMENT</h3></div><div class="module-content scrollbar-custom" id="plugin-list-container"></div></div>
-        </section>
-        <section id="config" class="grid-container-full">
-            <div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">CONFIGURATION (config.toml)</h3></div><div class="module-content"><textarea id="config-editor" spellcheck="false"></textarea><div style="text-align:right;margin-top:1rem;"><button class="button warning" onclick="saveConfig()">SAVE & RESTART</button></div></div></div>
-        </section>
+        <section id="handshakes" class="grid-container-full"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">CAPTURED HANDSHAKES</h3></div><div class="module-content scrollbar-custom"><table class="table" id="handshakes-table"><thead><tr><th>Filename</th><th>Date</th><th>Size</th><th>Action</th></tr></thead><tbody></tbody></table></div></div></section>
+        <section id="peers" class="grid-container-full"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">VISIBLE PEERS</h3></div><div class="module-content scrollbar-custom" id="peer-list"></div></div></section>
+        <section id="networks" class="grid-container-full"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">LIVE NEARBY NETWORKS</h3></div><div class="module-content scrollbar-custom"><table class="table" id="networks-table"><thead><tr><th>SSID</th><th>BSSID</th><th>Ch</th><th>Enc</th><th>RSSI</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div></section>
+        <section id="ai" class="grid-container-ai"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">GRATITUDE HISTORY (LIVE REWARD)</h3></div><div class="module-content"><div id="gratitude-graph"></div></div></div><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">MANUAL AI PARAMETER TUNING</h3></div><div class="module-content"><form id="ai-tuning-form"><div class="stat-row"><label for="recon_hop_time">Recon Hop Time</label><input class="form-input" type="number" step="0.1" name="recon_hop_time" placeholder="e.g., 0.5"></div><div class="stat-row"><label for="assoc_timeout">Assoc Timeout</label><input class="form-input" type="number" step="0.1" name="assoc_timeout" placeholder="e.g., 1.0"></div><div class="stat-row"><label for="recon_time">Recon Time</label><input class="form-input" type="number" name="recon_time" placeholder="e.g., 30"></div><div style="text-align:right;margin-top:1rem;"><button type="submit" class="button warning">APPLY PARAMS</button></div></form></div></div><div class="module" style="grid-column: 1 / -1;"><div class="module-header"><h3 class="module-title">EPOCH HISTORY</h3></div><div class="module-content scrollbar-custom"><table class="table" id="epoch-history-table"><thead><tr><th>Epoch</th><th>Reward</th><th>Recon Hop Time</th><th>Assoc Timeout</th><th>Recon Time</th></tr></thead><tbody></tbody></table></div></div></section>
+        <section id="plugins" class="grid-container-full"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">PLUGIN MANAGEMENT</h3></div><div class="module-content scrollbar-custom" id="plugin-list-container"></div></div></section>
+        <section id="grid" class="grid-container-full"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">PWNGRID STATUS</h3></div><div class="module-content"><div class="stat-row"><span>Plugin Enabled:</span><span id="grid-enabled">--</span></div><div class="stat-row"><span>Report Mode:</span><span id="grid-report">--</span></div><div class="stat-row"><span>RSA Keys Generated:</span><span id="grid-keys">--</span></div><hr style="border-color:var(--neon-purple);margin:1rem 0;"><p>PwnGRID allows your Pwnagotchi to communicate over the internet. To enable, set `main.plugins.grid.enabled = true` in the Config editor.</p></div></div></section>
+        <section id="config" class="grid-container-full"><div class="module" style="height:100%;"><div class="module-header"><h3 class="module-title">CONFIGURATION (config.toml)</h3></div><div class="module-content"><textarea id="config-editor" class="form-input scrollbar-custom" spellcheck="false"></textarea><div style="text-align:right;margin-top:1rem;"><button class="button warning" onclick="saveConfig()">SAVE & RESTART</button></div></div></div></section>
     </main>
     <footer>
         <div id="footer-status">Connecting...</div>
-        <div class="footer-controls">
-            <button class="button warning" id="ai-toggle-btn" onclick="toggleAI()">TOGGLE AI</button>
-            <button class="button" onclick="restartPwnagotchi()">RESTART SERVICE</button>
-            <button class="button danger" onclick="shutdownSystem()">SHUTDOWN SYSTEM</button>
-        </div>
+        <div class="footer-controls"><button class="button warning" onclick="toggleAI()">TOGGLE AI</button><button class="button" onclick="restartPwnagotchi()">RESTART</button><button class="button danger" onclick="shutdownSystem()">SHUTDOWN</button></div>
     </footer>
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Cache
     const DOM = {
-        moodFace: document.getElementById('mood-face'), moodText: document.getElementById('mood-text'),
-        cpuUsage: document.getElementById('cpu-usage'), memoryUsage: document.getElementById('memory-usage'),
-        temperature: document.getElementById('temperature'), uptime: document.getElementById('uptime'),
-        epoch: document.getElementById('epoch'), networksCount: document.getElementById('networks-count'),
-        handshakeCount: document.getElementById('handshake-count'), peerCount: document.getElementById('peer-count'),
-        aiMode: document.getElementById('ai-mode'), aiLr: document.getElementById('ai-lr'),
-        aiEpsilon: document.getElementById('ai-epsilon'), aiPersonality: document.getElementById('ai-personality'),
+        moodGif: document.getElementById('mood-gif'), status: document.getElementById('status'),
+        cpu: document.getElementById('cpu'), mem: document.getElementById('mem'), temperature: document.getElementById('temperature'), uptime: document.getElementById('uptime'),
+        epoch: document.getElementById('epoch'), aps_total: document.getElementById('aps_total'), pwnd_total: document.getElementById('pwnd_total'), peerCount: document.getElementById('peer-count'),
+        mode: document.getElementById('mode'), train_epochs: document.getElementById('train_epochs'), gratitude: document.getElementById('gratitude'), last_reward: document.getElementById('last_reward'),
         footerStatus: document.getElementById('footer-status'), handshakesTableBody: document.querySelector('#handshakes-table tbody'),
         peerList: document.getElementById('peer-list'), pluginListContainer: document.getElementById('plugin-list-container'),
-        configEditor: document.getElementById('config-editor'), navLinks: document.querySelectorAll('nav .nav-link'),
-        sections: document.querySelectorAll('main section')
+        gridEnabled: document.getElementById('grid-enabled'), gridReport: document.getElementById('grid-report'), gridKeys: document.getElementById('grid-keys'),
+        peerModal: document.getElementById('peer-modal'), peerModalTitle: document.getElementById('peer-modal-title'), peerModalBody: document.getElementById('peer-modal-body'),
+        gratitudeGraph: document.getElementById('gratitude-graph'), epochHistoryTable: document.querySelector('#epoch-history-table tbody'), aiTuningForm: document.getElementById('ai-tuning-form'),
+        configEditor: document.getElementById('config-editor'), navLinks: document.querySelectorAll('nav .nav-link'), sections: document.querySelectorAll('main section')
     };
+    const gratitudeHistory = [];
+    const MAX_HISTORY_POINTS = 30;
 
-    // Navigation
     const switchTab = (targetId) => {
         DOM.navLinks.forEach(l => l.classList.toggle('active', l.hash === targetId));
         DOM.sections.forEach(s => s.classList.toggle('active', `#${s.id}` === targetId));
         if (targetId === '#plugins') loadPlugins();
         if (targetId === '#config') loadConfig();
+        if (targetId === '#grid') loadGridStatus();
+        if (targetId === '#ai') loadAiInsights();
     };
     DOM.navLinks.forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); switchTab(link.hash); }));
+    DOM.aiTuningForm.addEventListener('submit', submitAiParams);
 
-    // Data Renderers
+    const safeGet = (obj, path, def = '--') => path.split('.').reduce((acc, part) => acc && acc[part], obj) ?? def;
+    const renderStatus = (ok) => `<span style="color:var(--neon-${ok ? 'green' : 'pink'});">${ok ? 'TRUE' : 'FALSE'}</span>`;
+
     const updateDashboard = (data) => {
-        const dev = data.device_info || {};
-        const sess = data.session_stats || {};
-        const ai = data.ai_stats || {};
-
-        DOM.moodFace.textContent = dev.face || '(⊙_⊙)';
-        DOM.moodText.textContent = dev.status || '...';
-        DOM.cpuUsage.textContent = `${dev.cpu_load || 0}%`;
-        DOM.memoryUsage.textContent = `${dev.memory || '0/0'}`;
-        DOM.temperature.textContent = `${dev.temperature || 0}°C`;
-        DOM.uptime.textContent = dev.uptime || '--';
-        DOM.epoch.textContent = dev.epoch || 0;
-        DOM.networksCount.textContent = sess.aps_total || 0;
-        DOM.handshakeCount.textContent = sess.handshakes_total || 0;
+        const faceText = safeGet(data, 'face', '( नाना )');
+        const moodMap = {'( नाना )':'sleep.gif','(⇀‿‿↼)':'happy.gif','(✜‿‿✜)':'excited.gif','( T_T)':'sad.gif','(≖_≖)':'bored.gif','(°▃▃°)':'intense.gif','(⌐■_■)':'cool.gif','(☓‿‿☓)':'rebooting.gif'};
+        DOM.moodGif.src = `static/${moodMap[faceText] || 'sleep.gif'}`;
+        DOM.status.textContent = safeGet(data, 'status', '...');
+        DOM.cpu.textContent = `${safeGet(data, 'cpu', 0)}%`;
+        DOM.mem.textContent = safeGet(data, 'mem', '0/0');
+        DOM.temperature.textContent = `${safeGet(data, 'temperature', 0)}°C`;
+        DOM.uptime.textContent = safeGet(data, 'uptime');
+        DOM.epoch.textContent = safeGet(data, 'epoch', 0);
+        DOM.aps_total.textContent = safeGet(data, 'aps_total', 0);
+        DOM.pwnd_total.textContent = safeGet(data, 'pwnd_total', 0);
         DOM.peerCount.textContent = (data.peers || []).length;
+        DOM.mode.textContent = safeGet(data, 'mode', '--').toUpperCase();
+        DOM.train_epochs.textContent = safeGet(data, 'train_epochs', 0);
+        const lastReward = safeGet(data, 'last_reward', 0);
+        DOM.gratitude.textContent = lastReward.toFixed(4);
+        DOM.last_reward.textContent = lastReward.toFixed(4);
+        DOM.footerStatus.textContent = `Pwnagotchi is ${safeGet(data, 'status', 'learning')}... | Last Update: ${new Date().toLocaleTimeString()}`;
         
-        DOM.aiMode.textContent = ai.ai_enabled ? 'AUTO' : 'MANU';
-        DOM.aiLr.textContent = ai.learning_rate;
-        DOM.aiEpsilon.textContent = ai.epsilon;
-        DOM.aiPersonality.textContent = `${ai.excited_epochs}/${ai.bored_epochs}/${ai.sad_epochs}`;
-        
-        DOM.footerStatus.textContent = `Pwnagotchi is ${dev.status || 'learning'}... | Last Update: ${new Date(data.timestamp).toLocaleTimeString()}`;
+        gratitudeHistory.push(lastReward);
+        if (gratitudeHistory.length > MAX_HISTORY_POINTS) gratitudeHistory.shift();
+        renderGratitudeGraph();
     };
 
-    const renderHandshakes = (handshakes) => {
-        if (!handshakes) return;
-        DOM.handshakesTableBody.innerHTML = '';
-        handshakes.forEach(handshake => {
-            const row = document.createElement('tr');
-            const date = new Date(handshake.timestamp * 1000);
-            row.innerHTML = `
-                <td>${handshake.name}</td>
-                <td>${date.toLocaleString()}</td>
-                <td>${handshake.size_kb} KB</td>
-                <td><a href="/api/handshakes/${handshake.name}" class="button">Download</a></td>
-            `;
-            DOM.handshakesTableBody.appendChild(row);
+    const renderGratitudeGraph = () => {
+        if (!DOM.gratitudeGraph) return;
+        DOM.gratitudeGraph.innerHTML = '';
+        const maxVal = Math.max(1, ...gratitudeHistory.map(Math.abs));
+        gratitudeHistory.forEach(val => {
+            const bar = document.createElement('div');
+            bar.className = `graph-bar ${val < 0 ? 'negative' : ''}`;
+            bar.style.height = `${(Math.abs(val) / maxVal) * 100}%`;
+            DOM.gratitudeGraph.appendChild(bar);
         });
-    };
-    const renderPeers = (peers) => {
-        if (!peers) return;
-        DOM.peerList.innerHTML = '';
-        peers.forEach(peer => {
-            const peerDiv = document.createElement('div');
-            peerDiv.className = 'stat-row';
-            peerDiv.innerHTML = `<span>${peer.advertisement.name}</span><span>${peer.advertisement.face}</span>`;
-            DOM.peerList.appendChild(peerDiv);
-        });
-    };
-    const loadPlugins = async () => {
-        try {
-            const response = await fetch('/api/plugins');
-            const plugins = await response.json();
-            renderPlugins(plugins);
-        } catch (e) {
-            console.error("Failed to load plugins:", e);
-        }
-    };
-
-    const renderPlugins = (plugins) => {
-        if (!plugins) return;
-        DOM.pluginListContainer.innerHTML = '';
-        plugins.forEach(plugin => {
-            const pluginDiv = document.createElement('div');
-            pluginDiv.className = 'stat-row';
-            pluginDiv.innerHTML = `
-                <span>${plugin.name}</span>
-                <div class="toggle-switch ${plugin.enabled ? 'active' : ''}" onclick="togglePlugin('${plugin.name}')"></div>
-            `;
-            DOM.pluginListContainer.appendChild(pluginDiv);
-        });
-    };
-    const loadConfig = async () => {
-        try {
-            const response = await fetch('/api/config');
-            const config = await response.text();
-            DOM.configEditor.value = config;
-        } catch (e) {
-            console.error("Failed to load config:", e);
-        }
     };
     
-    // WebSocket
+    const renderTable = (tableBody, data, rowBuilder, noDataMsg) => {
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+        if (!data || data.length === 0) {
+            const colSpan = tableBody.previousElementSibling.firstElementChild.children.length;
+            tableBody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;">${noDataMsg}</td></tr>`;
+            return;
+        }
+        data.forEach(item => tableBody.appendChild(rowBuilder(item)));
+    };
+
+    const loadAiInsights = async () => {
+        try {
+            const response = await fetch('/api/ai/epochs');
+            if (!response.ok) throw new Error(response.statusText);
+            const epochs = await response.json();
+            renderTable(DOM.epochHistoryTable, epochs.reverse(), (epoch) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${epoch.epoch}</td><td>${epoch.reward}</td><td>${epoch.params.recon_hop_time || '--'}</td><td>${epoch.params.assoc_timeout || '--'}</td><td>${epoch.params.recon_time || '--'}</td>`;
+                return row;
+            }, "No epoch history found.");
+        } catch (e) { console.error("Error loading AI insights:", e); }
+    };
+
+    let ws;
     const connectWebSocket = () => {
-        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
-        ws.onopen = () => { DOM.footerStatus.textContent = "Live connection established."; };
+        ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+        ws.onopen = () => DOM.footerStatus.textContent = "Live connection established.";
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.error) { DOM.footerStatus.textContent = `Error: ${data.error}`; return; }
-                updateDashboard(data); renderHandshakes(data.handshakes); renderPeers(data.peers);
-            } catch (e) { console.error("Failed to parse WebSocket message:", e); }
+                if (data.error) { DOM.footerStatus.textContent = `API Error: ${data.error}`; return; }
+                updateDashboard(data);
+                renderTable(DOM.handshakesTableBody, data.handshakes, (h) => {
+                    const r = document.createElement('tr');
+                    r.innerHTML = `<td>${h.name}</td><td>${new Date(h.timestamp*1000).toLocaleString()}</td><td>${h.size_kb} KB</td><td><a href="/api/handshakes/${h.name}" class="button" download>DL</a></td>`;
+                    return r;
+                }, "No handshakes captured yet.");
+                const peerList = document.getElementById('peer-list');
+                if (data.peers && data.peers.length > 0) {
+                    peerList.innerHTML = '';
+                    data.peers.forEach(p => {
+                        const d = document.createElement('div');
+                        d.className = 'stat-row';
+                        d.style.cursor = 'pointer';
+                        d.onclick = () => showPeerDetails(p);
+                        d.innerHTML = `<span>${p.name||'?'} ${p.face||''}</span><span>RSSI: ${p.rssi||'N/A'}</span>`;
+                        peerList.appendChild(d);
+                    });
+                } else { peerList.innerHTML = '<span>No peers detected.</span>'; }
+                renderTable(document.querySelector('#networks-table tbody'), data.aps, (ap) => {
+                    const r = document.createElement('tr');
+                    r.innerHTML = `<td>${ap.hostname.replace(/</g,"&lt;")}</td><td>${ap.bssid}</td><td>${ap.channel}</td><td>${ap.encryption}</td><td>${ap.rssi}</td><td><button class="button" onclick="triggerAttack('deauth','${ap.bssid}')">De</button><button class="button" onclick="triggerAttack('assoc','${ap.bssid}')">As</button></td>`;
+                    return r;
+                }, "Scanning for networks...");
+            } catch (e) { console.error("WS Error:", e); }
         };
-        ws.onclose = () => { DOM.footerStatus.textContent = "Connection lost. Retrying..."; setTimeout(connectWebSocket, 3000); };
-        ws.onerror = (error) => { console.error("WebSocket error:", error); ws.close(); };
+        ws.onclose = () => { DOM.footerStatus.textContent = "Connection lost. Retrying..."; setTimeout(connectWebSocket, 5000); };
     };
-
     connectWebSocket();
-});
 
-// Control Functions (made global for onclick handlers)
-async function sendControlCommand(endpoint, confirmMsg) {
-    if (!confirm(confirmMsg)) return;
-    try {
-        const response = await fetch(endpoint, { method: 'POST' });
-        const result = await response.json();
-        alert(result.message || result.error || "An unknown error occurred.");
-        return response.ok;
-    } catch (e) {
-        alert("Failed to send command to the backend.");
-        return false;
+    window.showPeerDetails = (peer) => {
+        DOM.peerModalTitle.textContent = `Peer: ${peer.name || 'Unknown'}`;
+        DOM.peerModalBody.innerHTML = `<div class="stat-row"><span>Face:</span><span>${peer.face || '--'}</span></div><div class="stat-row"><span>PWND (Sess):</span><span>${peer.pwnd_session || 0}</span></div><div class="stat-row"><span>PWND (Total):</span><span>${peer.pwnd_total || 0}</span></div>`;
+        DOM.peerModal.style.display = 'flex';
+    };
+    window.closePeerModal = () => DOM.peerModal.style.display = 'none';
+
+    async function loadPlugins() { try { const r = await fetch('/api/plugins'); if(!r.ok)return; const p = await r.json(); renderTable(DOM.pluginListContainer, p, (pl) => { const d=document.createElement('div'); d.className='stat-row'; d.innerHTML=`<span>${pl.name}</span><div style="border:1px solid;cursor:pointer;padding:2px 4px;" class="${pl.enabled?'active':''}" onclick="togglePlugin('${pl.name}')">${pl.enabled?'ON':'OFF'}</div>`; return d;},'No plugins found.');}catch(e){}};
+    async function loadConfig() { try { const r = await fetch('/api/config'); DOM.configEditor.value = await r.text(); } catch (e) { console.error(e); }};
+    async function loadGridStatus() { try { const r = await fetch('/api/grid'); if(!r.ok)return; const s=await r.json(); DOM.gridEnabled.innerHTML=renderStatus(s.enabled); DOM.gridReport.innerHTML=renderStatus(s.report_mode); DOM.gridKeys.innerHTML=renderStatus(s.keys_generated); } catch (e) {}};
+    async function submitAiParams(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const params = Object.fromEntries(formData.entries());
+        const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ params }) };
+        await sendControlCommand('/api/ai/params', options, "Apply these temporary AI parameters?");
+        event.target.reset();
     }
-}
-function toggleAI() { sendControlCommand('/api/control/toggle_ai', 'This will restart Pwnagotchi. Are you sure you want to toggle the AI mode?'); }
-function restartPwnagotchi() { sendControlCommand('/api/control/restart', 'Are you sure you want to restart the Pwnagotchi service?'); }
-function shutdownSystem() { sendControlCommand('/api/control/shutdown', 'WARNING: This will shut down the entire device. Are you sure?'); }
-async function togglePlugin(name) { if (await sendControlCommand(`/api/plugins/toggle/${name}`, `This will restart Pwnagotchi. Toggle the '${name}' plugin?`)) { setTimeout(() => document.querySelector('a[href="#plugins"]').click(), 2000); } }
-async function saveConfig() {
-    if (!confirm("This will overwrite your config.toml and restart Pwnagotchi. Are you sure?")) return;
-    const configContent = document.getElementById('config-editor').value;
-    try {
-        const response = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: configContent });
-        const result = await response.json();
-        alert(result.message || result.error);
-    } catch (e) { alert("Failed to save configuration."); }
-}
+});
+async function sendControlCommand(endpoint, options, confirmMsg) { if(confirmMsg&&!confirm(confirmMsg))return; try{const r=await fetch(endpoint,options);const d=await r.json();alert(d.message||d.detail||"Unknown response");}catch(e){alert(`Error: ${e.message}`)}};
+function toggleAI() { sendControlCommand('/api/control/toggle_ai', {method:'POST'}, 'This will restart Pwnagotchi. Continue?'); }
+function restartPwnagotchi() { sendControlCommand('/api/control/restart', {method:'POST'}, 'Are you sure you want to restart the Pwnagotchi service?'); }
+function shutdownSystem() { sendControlCommand('/api/control/shutdown', {method:'POST'}, 'WARNING: This will shut down the entire device. Are you sure?'); }
+function togglePlugin(name) { sendControlCommand(`/api/plugins/toggle/${name}`, {method:'POST'}, `This will restart Pwnagotchi. Toggle the '${name}' plugin?`); }
+function saveConfig() { const options = { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: document.getElementById('config-editor').value }; sendControlCommand('/api/config', options, "This will overwrite config.toml and restart Pwnagotchi. Continue?"); }
+function triggerAttack(type, bssid) { const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bssid }) }; sendControlCommand(`/api/attack/${type}`, options, `Launch a ${type.toUpperCase()} attack on ${bssid}?`); }
 </script>
+<div id="peer-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000;">
+    <div id="peer-modal-content" class="module" style="width: 90%; max-width: 500px;"><div class="module-header"><h3 class="module-title" id="peer-modal-title"></h3><button class="button danger" onclick="closePeerModal()">X</button></div><div class="module-content" id="peer-modal-body" style="padding-top: 1rem;"></div></div>
+</div>
 </body>
 </html>
