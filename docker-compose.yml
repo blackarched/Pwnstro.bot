@@ -1,0 +1,245 @@
+version: '3.8'
+
+services:
+  pwnagotchi-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-latest}
+    image: pwnagotchi/dashboard:${VERSION:-latest}
+    container_name: pwnagotchi-dashboard
+    restart: unless-stopped
+    
+    # Network configuration
+    ports:
+      - "8080:8080"
+    
+    # Environment variables
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - TZ=${TZ:-UTC}
+    
+    # Volume mounts
+    volumes:
+      # Configuration
+      - ./config:/etc/pwnagotchi:ro
+      # Logs (persistent)
+      - pwnagotchi-logs:/var/log/pwnagotchi
+      # Data export directory
+      - ./data:/app/data
+    
+    # Security settings
+    user: "1000:1000"  # Change to match your host user
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Capabilities (minimal required)
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: pwnagotchi-nginx
+    restart: unless-stopped
+    profiles:
+      - "with-nginx"
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-available:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/ssl/certs:ro
+      - nginx-cache:/var/cache/nginx
+      - nginx-logs:/var/log/nginx
+    
+    depends_on:
+      pwnagotchi-dashboard:
+        condition: service_healthy
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    
+    # Security
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:noexec,nosuid,size=50m
+      - /var/run:noexec,nosuid,size=10m
+    
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    
+    security_opt:
+      - no-new-privileges:true
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: pwnagotchi-redis
+    restart: unless-stopped
+    profiles:
+      - "with-cache"
+    
+    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
+    
+    volumes:
+      - redis-data:/data
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    
+    # Security
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=10m
+    
+    cap_drop:
+      - ALL
+    
+    security_opt:
+      - no-new-privileges:true
+
+  # Prometheus monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pwnagotchi-prometheus
+    restart: unless-stopped
+    profiles:
+      - "with-monitoring"
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=168h'
+      - '--web.enable-lifecycle'
+    
+    depends_on:
+      - pwnagotchi-dashboard
+
+  # Grafana dashboards (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pwnagotchi-grafana
+    restart: unless-stopped
+    profiles:
+      - "with-monitoring"
+    
+    ports:
+      - "3000:3000"
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning:ro
+    
+    depends_on:
+      - prometheus
+
+volumes:
+  # Persistent data volumes
+  pwnagotchi-logs:
+    driver: local
+  
+  redis-data:
+    driver: local
+  
+  prometheus-data:
+    driver: local
+  
+  grafana-data:
+    driver: local
+  
+  nginx-cache:
+    driver: local
+  
+  nginx-logs:
+    driver: local
+
+networks:
+  default:
+    name: pwnagotchi-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
