@@ -1,105 +1,169 @@
-# Pwnagotchi C&C Dashboard
+# Pwnagotchi Enhanced Dashboard
 
-A real-time, production-grade dashboard for monitoring and controlling your Pwnagotchi.
+Production-ready web dashboard for Pwnagotchi Linux systems with real backend integration.
 
-## Features
+## 🚀 Features
 
-- **Live Data:** Real-time updates for status, peers, handshakes, and logs via WebSockets.
-- **Remote Control:** Restart the Pwnagotchi service, toggle AI mode, and shut down the device from the web UI.
-- **Plugin Management:** Enable and disable plugins on the fly.
-- **Configuration Editor:** Edit your `config.toml` directly from the dashboard.
-- **Handshake Management:** Download captured handshakes.
+- **Real-time System Monitoring**: Live CPU, memory, and temperature stats
+- **Network Interface Management**: Monitor WiFi and Ethernet interfaces
+- **System Control**: Reboot, shutdown, and mode switching capabilities
+- **Configuration Management**: Persistent settings with validation
+- **Security Hardened**: Rate limiting, input validation, and XSS protection
+- **Responsive Design**: Works on desktop and mobile devices
+- **Export Functionality**: Download logs and system data
 
-## Production-Readiness Checklist
+## 📋 Requirements
 
-| Category                     | Status | Notes                                                                                             |
-| ---------------------------- | :----: | ------------------------------------------------------------------------------------------------- |
-| **BACKEND: FastAPI**         |   ✅   | All endpoints are functional and return live data from the Pwnagotchi's local API.                |
-|                              |   ✅   | Input validation and error handling are implemented for all routes.                               |
-|                              |   ✅   | Endpoints match the real Pwnagotchi JSON schema.                                                  |
-|                              |   ✅   | No commented-out, unfinished, or placeholder logic exists.                                        |
-|                              |   ✅   | Live connection to the device via the local API.                                                  |
-| **FRONTEND (HTML/CSS/JS)**   |   ✅   | Live data binding is implemented using WebSockets.                                                |
-|                              |   ✅   | Real-time updates for peers, handshakes, and logs are displayed.                                  |
-|                              |   ✅   | The dashboard dynamically displays the device status, mode, and configuration.                    |
-|                              |   ✅   | Functional buttons for rebooting, switching modes, etc., are implemented.                         |
-|                              |   ✅   | No hardcoded placeholder values or fake data are used.                                            |
-| **WEBSOCKET + TELEMETRY**    |   ✅   | The backend emits correctly structured WebSocket messages from live data.                         |
-|                              |   ✅   | The frontend listens and reacts to WebSocket messages in real time.                               |
-|                              |   ✅   | Reconnection logic for dropped WebSocket connections is implemented.                              |
-|                              |   ✅   | Message schemas are consistent with the actual device output.                                     |
-| **INTEGRATION + DEPLOYMENT** |   ✅   | A `requirements.txt` file is provided.                                                            |
-|                              |   ✅   | The `main.py` entry point serves both the API and the static frontend.                            |
-|                              |   ✅   | Clear startup instructions are provided for direct Linux execution.                               |
-|                              |   ✅   | An optional `systemd` unit file is provided for auto-starting the dashboard.                      |
-| **SECURITY & PERFORMANCE**   |   ⚠️   | No rate limiting or abuse protection is implemented. This is a potential area for improvement.      |
-|                              |   ⚠️   | No authentication is implemented. The dashboard should only be exposed to trusted networks.       |
-|                              |   ✅   | Input is sanitized for the configuration editor.                                                  |
-|                              |   ✅   | The application is lightweight and performant enough for a Raspberry Pi Zero.                     |
+- Python 3.8+
+- Linux system with network interfaces
+- Root privileges for system commands
+- Modern web browser
 
-## Deployment Instructions
+## 🛠️ Installation
 
-### Prerequisites
+1. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- A Pwnagotchi running on a Raspberry Pi or other Linux device.
-- Python 3.7+
+2. **Create log directory:**
+   ```bash
+   sudo mkdir -p /var/log/pwnagotchi
+   sudo chmod 755 /var/log/pwnagotchi
+   ```
 
-### 1. Installation
+3. **Set up permissions for system commands:**
+   ```bash
+   # Add to sudoers for reboot/shutdown (optional)
+   echo "$(whoami) ALL=(ALL) NOPASSWD: /sbin/reboot, /sbin/shutdown" | sudo tee -a /etc/sudoers
+   ```
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd pwnagotchi-cc-dashboard
-    ```
+## 🚀 Usage
 
-2.  **Create a virtual environment and install dependencies:**
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
+1. **Start the backend server:**
+   ```bash
+   python3 backend_api.py
+   ```
 
-### 2. Running the Dashboard
+2. **Access the dashboard:**
+   Open http://localhost:8080 in your web browser
 
-To run the dashboard, simply execute the `main.py` script:
+3. **Environment variables (optional):**
+   ```bash
+   export PORT=8080              # Server port
+   export SECRET_KEY=your_key    # Flask secret key
+   export DEBUG=false            # Debug mode
+   ```
 
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8080
+## 🔧 Configuration
+
+The dashboard supports real-time configuration updates:
+
+- **Unit Name**: Custom identifier for your device
+- **Scan Interval**: Network scanning frequency (1-60 seconds)
+- **Auto-reconnect**: Automatic connection recovery
+
+## 🔒 Security Features
+
+- **Rate Limiting**: Prevents API abuse
+- **Input Validation**: Sanitizes all user inputs
+- **CORS Protection**: Restricts cross-origin requests
+- **Security Headers**: XSS and clickjacking protection
+- **Error Handling**: Comprehensive logging and error recovery
+
+## 🐛 Troubleshooting
+
+**Connection Issues:**
+- Ensure backend server is running on correct port
+- Check firewall settings for port 8080
+- Verify network connectivity
+
+**Permission Errors:**
+- Run with appropriate privileges for system monitoring
+- Check log directory permissions: `/var/log/pwnagotchi/`
+
+**Network Scanning:**
+- Requires root privileges for iwlist command
+- Install wireless-tools: `sudo apt-get install wireless-tools`
+
+## 📁 File Structure
+
+```
+New_pwnagotchi/
+├── pwnagotchi_dashboard.html    # Frontend dashboard
+├── pwnagotchi_enhanced.js       # JavaScript functionality
+├── backend_api.py               # Python backend server
+├── requirements.txt             # Python dependencies
+└── README.md                    # This file
 ```
 
-The dashboard will be available at `http://<your-pwnagotchi-ip>:8080`.
+## 🔄 API Endpoints
 
-### 3. Auto-starting with `systemd` (Optional)
+- `GET /api/status` - System status and statistics
+- `POST /api/command` - Execute system commands
+- `GET /api/export/data` - Export system data
 
-To automatically start the dashboard on boot, you can create a `systemd` service.
+## 🎯 Production Deployment
 
-1.  **Create a service file:**
-    ```bash
-    sudo nano /etc/systemd/system/pwnagotchi-dashboard.service
-    ```
+For production deployment:
 
-2.  **Add the following content to the file, replacing `<path-to-your-project>` with the absolute path to the project directory:**
+1. **Use a proper WSGI server:**
+   ```bash
+   pip install gunicorn
+   gunicorn -w 4 -b 0.0.0.0:8080 backend_api:app
+   ```
 
-    ```ini
-    [Unit]
-    Description=Pwnagotchi C&C Dashboard
-    After=network.target
+2. **Set up reverse proxy (nginx):**
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+       
+       location / {
+           proxy_pass http://127.0.0.1:8080;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+       }
+   }
+   ```
 
-    [Service]
-    User=pi
-    Group=pi
-    WorkingDirectory=<path-to-your-project>
-    ExecStart=<path-to-your-project>/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8080
-    Restart=always
+3. **Configure systemd service:**
+   ```ini
+   [Unit]
+   Description=Pwnagotchi Dashboard
+   After=network.target
+   
+   [Service]
+   Type=simple
+   User=pwnagotchi
+   WorkingDirectory=/opt/pwnagotchi
+   ExecStart=/usr/bin/python3 backend_api.py
+   Restart=always
+   
+   [Install]
+   WantedBy=multi-user.target
+   ```
 
-    [Install]
-    WantedBy=multi-user.target
-    ```
+## 📈 Monitoring
 
-3.  **Enable and start the service:**
-    ```bash
-    sudo systemctl enable pwnagotchi-dashboard
-    sudo systemctl start pwnagotchi-dashboard
-    ```
+The dashboard provides comprehensive monitoring:
 
-You can check the status of the service with `sudo systemctl status pwnagotchi-dashboard`.
+- **System Resources**: CPU, RAM, temperature
+- **Network Activity**: Interface status, scanning results
+- **Application Logs**: Real-time log streaming
+- **Performance Metrics**: Response times and error rates
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement changes with tests
+4. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## ⚠️ Disclaimer
+
+This software is for educational and authorized testing purposes only. Users are responsible for complying with applicable laws and regulations.

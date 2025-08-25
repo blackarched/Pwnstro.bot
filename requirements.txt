@@ -1,10 +1,25 @@
-fastapi
-uvicorn[standard]
-pyYAML
-pydantic
-websockets
-aiofiles
-psutil
-jinja2
-toml
-httpx
+# Pwnagotchi Backend Dependencies
+# Production-ready packages with specific versions
+
+# Core web framework
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Security and CORS
+Flask-CORS==4.0.0
+Flask-Limiter==3.5.0
+
+# System monitoring
+psutil==5.9.6
+
+# WebSocket support (optional upgrade)
+# flask-socketio==5.3.6
+# python-socketio==5.9.0
+
+# Development dependencies (uncomment for development)
+# pytest==7.4.3
+# pytest-flask==1.3.0
+# pytest-cov==4.1.0
+# black==23.9.1
+# flake8==6.1.0
+# mypy==1.6.1

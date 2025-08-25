@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:;">
+    <title>Pwnagotchi | Command Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.21.2/dist/globe.gl.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Orbitron';
+            src: url('data:font/woff2;base64,') format('woff2');
+            font-display: swap;
+            font-weight: 400 700;
+        }
+        
+        @font-face {
+            font-family: 'Share Tech Mono';
+            src: url('data:font/woff2;base64,') format('woff2');
+            font-display: swap;
+        }
+
+        :root {
+            --neon-green: #00ff41;
+            --neon-blue: #00bfff;
+            --neon-purple: #bf00ff;
+            --neon-pink: #ff0080;
+            --neon-cyan: #00ffff;
+            --neon-orange: #ff8000;
+            --neon-yellow: #ffff00;
+            --neon-red: #f44;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: rgba(16, 20, 32, 0.95);
+            --bg-glass: rgba(32, 40, 64, 0.15);
+            --bg-card: rgba(20, 25, 40, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #b0b8c8;
+            --border-radius: 12px;
+            --glow-intensity: 0 0 20px;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, var(--neon-cyan), transparent),
+                radial-gradient(2px 2px at 40% 70%, var(--neon-purple), transparent),
+                radial-gradient(1px 1px at 90% 40%, var(--neon-green), transparent),
+                radial-gradient(1px 1px at 60% 10%, var(--neon-pink), transparent);
+            background-size: 300px 300px, 400px 400px, 200px 200px, 350px 350px;
+            animation: float 20s ease-in-out infinite;
+            opacity: 0.3;
+            z-index: -1;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 1rem;
+            display: grid;
+            grid-template-areas: 
+                "header header header"
+                "face analytics chart"
+                "controls networks logs"
+                "system system interfaces";
+            grid-template-columns: 350px 1fr 1fr;
+            grid-template-rows: auto 1fr 1fr auto;
+            gap: 1rem;
+            height: 100vh;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Orbitron', 'Arial Black', sans-serif;
+            margin: 0 0 1rem 0;
+        }
+        
+        .glass-window {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .glass-window::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan) 50%, transparent);
+            animation: scan-line 4s linear infinite;
+        }
+        
+        @keyframes scan-line {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .glass-window:hover {
+            border-color: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), var(--glow-intensity) var(--neon-cyan), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .header-area { grid-area: header; }
+        .face-area { grid-area: face; }
+        .analytics-area { grid-area: analytics; }
+        .chart-area { grid-area: chart; padding: 0; }
+        .controls-area { grid-area: controls; }
+        .networks-area { grid-area: networks; }
+        .logs-area { grid-area: logs; padding: 0; }
+        .system-area { grid-area: system; }
+        .interfaces-area { grid-area: interfaces; }
+        
+        .neon-text {
+            color: var(--text-primary);
+            text-shadow: 0 0 5px var(--text-primary), 0 0 10px var(--text-primary), 0 0 15px var(--neon-green), 0 0 20px var(--neon-green);
+        }
+        
+        .cyberpunk-btn {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px 24px;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-radius: var(--border-radius);
+        }
+        
+        .cyberpunk-btn:hover:not(:disabled) {
+            background: var(--neon-green);
+            color: var(--bg-primary);
+            box-shadow: 0 0 10px var(--neon-green), 0 0 40px var(--neon-green);
+            transform: translateY(-2px);
+        }
+        
+        .cyberpunk-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 3D Globe Styles */
+        .chart-area {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        #globe-container {
+            width: 100%;
+            height: 100%;
+            cursor: move;
+            border-radius: var(--border-radius);
+        }
+
+        /* Cyber Terminal Log Box Styles */
+        .logs-area {
+            background: var(--bg-glass);
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.1);
+            border: 1px solid var(--neon-green);
+        }
+        .cyber-terminal {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-radius: var(--border-radius);
+            position: relative;
+        }
+        .matrix-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.15;
+            border-radius: var(--border-radius);
+        }
+        .cyber-terminal-header {
+            background: linear-gradient(to right, #0a0a0a, #111);
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--neon-green);
+            border-bottom: 1px solid var(--neon-green);
+            box-shadow: 0 2px 15px rgba(0, 255, 0, 0.3);
+            z-index: 2;
+        }
+        .terminal-buttons { display: flex; gap: 8px; }
+        .terminal-button { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2); }
+        .terminal-button.red { background: #ff5f56; }
+        .terminal-button.yellow { background: #ffbd2e; }
+        .terminal-button.green { background: #27c93f; }
+        .terminal-log-body {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+            color: var(--text-primary);
+            text-shadow: 0 0 8px var(--neon-green);
+            line-height: 1.6;
+            z-index: 2;
+            font-size: 0.9rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-green) transparent;
+        }
+        .terminal-log-body::-webkit-scrollbar { width: 5px; }
+        .terminal-log-body::-webkit-scrollbar-track { background: transparent; }
+        .terminal-log-body::-webkit-scrollbar-thumb { background: var(--neon-green); border-radius: 3px; }
+        .log-entry-prompt { color: var(--neon-green); margin-right: 8px; }
+
+        /* Other Styles */
+        .stat-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #374151; }
+        .stat-item:last-child { border-bottom: none; }
+        .input-field { width: 100%; background: var(--bg-primary); border: 1px solid var(--neon-green); color: var(--text-primary); padding: 0.75rem; border-radius: var(--border-radius); font-family: inherit; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; text-transform: uppercase; }
+        .status-active { background: rgba(74, 222, 128, 0.2); color: #4ade80; border: 1px solid #4ade80; }
+        .status-error { background: rgba(248, 113, 113, 0.2); color: #f87171; border: 1px solid #f87171; }
+        .status-warning { background: rgba(250, 204, 21, 0.2); color: #facc15; border: 1px solid #facc15; }
+        .pwnagotchi-face { display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%; }
+        .face-display { width: 200px; height: 120px; background: #000; border: 2px solid var(--neon-green); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem; position: relative; overflow: hidden; }
+        .face-display::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2), transparent); animation: screen-refresh 2s linear infinite; }
+        @keyframes screen-refresh { 0% { left: -100%; } 100% { left: 100%; } }
+        .face-text { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); z-index: 1; }
+        .mood-indicator { margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(0, 255, 65, 0.1); border: 1px solid var(--neon-green); border-radius: 20px; font-size: 0.9rem; }
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+        .metric-card { background: var(--bg-card); padding: 1rem; border-radius: 8px; text-align: center; transition: all 0.3s ease; }
+        .metric-card:hover { border-color: var(--neon-cyan); box-shadow: var(--glow-intensity) var(--neon-cyan); }
+        .metric-value { font-size: 2rem; font-weight: bold; color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+        .metric-label { font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem; }
+        .network-list { flex-grow: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--neon-cyan) transparent; }
+        .network-item { padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-card); border-radius: 8px; border-left: 3px solid var(--neon-cyan); transition: all 0.3s ease; }
+        .network-item:hover { background: rgba(0, 255, 255, 0.1); transform: translateX(5px); }
+        .network-ssid { font-weight: bold; color: var(--neon-cyan); }
+        .network-details { font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; }
+        .signal-strength { display: inline-flex; align-items: end; gap: 2px; margin-left: 0.5rem; }
+        .signal-bar { width: 3px; background: var(--neon-green); border-radius: 1px; }
+        .signal-bar:nth-child(1) { height: 4px; } .signal-bar:nth-child(2) { height: 8px; } .signal-bar:nth-child(3) { height: 12px; } .signal-bar:nth-child(4) { height: 16px; }
+        
+        /* Responsive Grid */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-areas: "header header" "face analytics" "chart chart" "controls networks" "logs logs" "system interfaces";
+                grid-template-columns: 1fr 1fr; grid-template-rows: auto auto 400px auto auto auto;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-areas: "header" "face" "analytics" "chart" "controls" "networks" "logs" "system" "interfaces";
+                grid-template-columns: 1fr; grid-template-rows: repeat(9, auto); height: auto;
+            }
+            .chart-area { min-height: 350px; }
+            .logs-area { min-height: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="glass-window header-area" style="text-align: center;">
+            <h1 class="neon-text" style="font-size: 2.5rem; margin-bottom: 0.5rem; background: linear-gradient(45deg, var(--neon-cyan), var(--neon-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">PWNAGOTCHI</h1>
+            <p style="font-size: 1.125rem;">Neural Network Edition <span id="version">v3.0.0</span></p>
+            <p style="margin-top: 0.5rem;">Status: <span id="status" class="status-badge status-warning">CONNECTING</span></p>
+        </header>
+        
+        <div class="glass-window face-area">
+            <div class="pwnagotchi-face">
+                <h3 style="color: var(--neon-green); margin-bottom: 1rem;">PWNAGOTCHI FACE</h3>
+                <div class="face-display"><div class="face-text" id="pwnagotchi-face">(◕‿◕)</div></div>
+                <div class="mood-indicator" id="mood-status">Booting...</div>
+                <div style="margin-top: 1rem; width: 100%;">
+                    <div class="stat-item" style="border: none;"><span>Mode:</span><span id="mode" style="color: var(--neon-cyan);">AUTO</span></div>
+                    <div class="stat-item" style="border: none;"><span>Uptime:</span><span id="uptime" style="color: var(--neon-green);">00:00:00</span></div>
+                </div>
+            </div>
+        </div>
+                        
+        <div class="glass-window analytics-area">
+            <h3 style="color: var(--neon-purple);">CORE ANALYTICS</h3>
+            <div class="analytics-grid">
+                <div class="metric-card"><div class="metric-value" id="networks-seen">0</div><div class="metric-label">Networks</div></div>
+                <div class="metric-card"><div class="metric-value" id="handshakes" style="color: var(--neon-purple);">0</div><div class="metric-label">Handshakes</div></div>
+                <div class="metric-card"><div class="metric-value" id="peers-met" style="color: var(--neon-cyan);">0</div><div class="metric-label">Peers</div></div>
+                <div class="metric-card"><div class="metric-value" id="cpu-usage" style="color: var(--neon-orange);">0%</div><div class="metric-label">CPU</div></div>
+                <div class="metric-card"><div class="metric-value" id="memory-usage" style="color: var(--neon-pink);">0%</div><div class="metric-label">Memory</div></div>
+                <div class="metric-card"><div class="metric-value" id="temperature" style="color: var(--neon-blue);">0°C</div><div class="metric-label">Temp</div></div>
+            </div>
+        </div>
+        
+        <div class="glass-window chart-area">
+            <div id="globe-container"></div>
+        </div>
+            
+        <div class="glass-window controls-area">
+            <h3 style="color: var(--neon-pink);">MISSION CONTROL</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                <button id="toggle-mode" class="cyberpunk-btn" disabled>Toggle Mode</button>
+                <button id="scan-networks" class="cyberpunk-btn" disabled>Scan</button>
+                <button id="reboot-btn" class="cyberpunk-btn" disabled>Reboot</button>
+                <button id="shutdown-btn" class="cyberpunk-btn" disabled>Shutdown</button>
+            </div>
+            <h4 style="color: var(--neon-green);">CONFIGURATION</h4>
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Unit Name</label>
+                <input type="text" id="unit-name" class="input-field" value="pwnagotchi" maxlength="32">
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>Scan Interval: <span id="scan-value" style="color: var(--neon-green);">5s</span></label>
+                <input type="range" id="scan-interval" min="1" max="60" value="5" style="width: 100%;">
+            </div>
+            <button id="save-config" class="cyberpunk-btn" style="width: 100%;" disabled>Save Config</button>
+        </div>
+        
+        <div class="glass-window networks-area">
+            <h3 style="color: var(--neon-orange);">DETECTED NETWORKS</h3>
+            <div class="network-list" id="network-list"></div>
+        </div>
+        
+        <div class="glass-window logs-area">
+            <div class="cyber-terminal">
+                <canvas id="matrix-canvas" class="matrix-background"></canvas>
+                <div class="cyber-terminal-header">
+                    <div class="terminal-buttons"><div class="terminal-button red"></div><div class="terminal-button yellow"></div><div class="terminal-button green"></div></div>
+                    <div>SYSTEM LOGS</div>
+                    <div></div>
+                </div>
+                <div class="terminal-log-body" id="terminal-log-body"></div>
+            </div>
+        </div>
+
+        <div class="glass-window system-area">
+            <h3 style="color: var(--neon-blue);">DATA EXPORT &amp; INFO</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <button id="export-data" class="cyberpunk-btn" style="width: 100%; margin-bottom: 0.5rem;" disabled>Export Data</button>
+                    <button id="export-logs" class="cyberpunk-btn" style="width: 100%;" disabled>Export Logs</button>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                    <p>Build: <span id="build-info">N/A</span></p>
+                    <p>Last Update: <span id="last-update">N/A</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-window interfaces-area">
+            <h3 style="color: var(--neon-purple);">NETWORK INTERFACES</h3>
+            <div id="network-interfaces" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;"></div>
+        </div>
+    </div>
+
+    <script src="./pwnagotchi_enhanced.js"></script>
+</body>
+</html>
